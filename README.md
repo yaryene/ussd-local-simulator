@@ -18,6 +18,3 @@ This branch contains a **fully local** USSD testing environment with a browser-b
 Test PIN: `1234`
 
 ---
-
-**This is the local development/testing branch.**
-See `main` branch for the version using ngrok + Africa's Talking.

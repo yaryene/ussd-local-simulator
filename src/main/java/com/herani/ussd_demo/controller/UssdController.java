@@ -1,14 +1,10 @@
 package com.herani.ussd_demo.controller;
 
 import com.herani.ussd_demo.service.AuthService;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 @RestController
 @RequestMapping("/ussd")
 public class UssdController {
