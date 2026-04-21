@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 @RestController
 @RequestMapping("/ussd")
 public class UssdController {
@@ -40,7 +39,7 @@ public class UssdController {
 
         String[] inputs = userText.split("\\*");
 
-        // Step 2: Only PIN (exactly 1 part) -> This is the login step
+        // Step 2: Only PIN (exactly 1 part) → This is the login step
         if (inputs.length == 1) {
             String pin = inputs[0].trim();
 
@@ -72,13 +71,37 @@ public class UssdController {
 
             // 2. Send To SB Account
             if ("2".equals(mainChoice)) {
+                if (inputs.length == 2) {
+                    // Show sub-menu
+                    return "CON Send To SB Account\nEnter destination account number:";
+                }
+                if (inputs.length == 3) {
+                    String subChoice = inputs[2].trim();
+                    if ("1".equals(subChoice)) {
+                        return "END Account: 1000123456789\n" +
+                                "Name: Abebe Kebede\n" +
+                                "Balance: ETB 24,850.75\n" +
+                                "Available: ETB 24,850.75";
+                    }
+                    if ("2".equals(subChoice)) {
+                        return "END Mini Statement:\n• 12 Apr - Sent 500 ETB\n• 10 Apr + Received 2,000 ETB\n• 08 Apr - Sent 1,200 ETB\n\nCurrent Balance: ETB 24,850.75";
+                    }
+                    if ("3".equals(subChoice)) {
+                        return "CON Main Menu\n1. My Account\n2. Own Account Transfer\n3. Exit";
+                    }
+                }
+                return "END Invalid sub-option in My Account.";
+            }
+
+            // 2. Own Account Transfer
+            if ("2".equals(mainChoice)) {
                 // Check if user is authenticated
                 if (!authService.isAuthenticated(sessionId)) {
                     return "END Session expired. Please login again.";
                 }
                 
                 if (inputs.length == 2) {
-                    return "CON Send To SB Account\nEnter destination account number:";
+                    return "CON Own Account Transfer\nEnter destination account number:";
                 }
                 if (inputs.length == 3) {
                     String toAccount = inputs[2].trim();
@@ -89,13 +112,12 @@ public class UssdController {
                 }
                 if (inputs.length == 4) {
                     String amountStr = inputs[3].trim();
-                    String toAccount = inputs[2].trim(); // Re-declare for this scope
                     try {
                         double amount = Double.parseDouble(amountStr);
                         if (amount <= 0) {
                             return "END Invalid amount. Please enter a positive number.";
                         }
-                        return "CON Confirm transfer:\nTo: " + toAccount + "\nAmount: " + amount + " ETB\n1. Confirm\n2. Cancel";
+                        return "CON Confirm transfer:\nTo: " + inputs[2].trim() + "\nAmount: " + amount + " ETB\n1. Confirm\n2. Cancel";
                     } catch (NumberFormatException e) {
                         return "END Invalid amount format. Please enter a valid number.";
                     }
@@ -104,13 +126,13 @@ public class UssdController {
                     String confirm = inputs[4].trim();
                     if ("1".equals(confirm)) {
                         // Perform the transfer
-                        String toAccountFinal = inputs[2].trim();
+                        String toAccount = inputs[2].trim();
                         double amount = Double.parseDouble(inputs[3].trim());
                         String fromAccount = "000000010"; // Default from account
                         
                         TransferRequest transferRequest = new TransferRequest();
                         transferRequest.setFromAccountNo(fromAccount);
-                        transferRequest.setToAccountNo(toAccountFinal);
+                        transferRequest.setToAccountNo(toAccount);
                         transferRequest.setAmount(amount);
                         transferRequest.setRemark("USSD Transfer");
                         
@@ -125,26 +147,16 @@ public class UssdController {
                             return "END Transfer failed: " + transferResponse.getMessage();
                         }
                     } else if ("2".equals(confirm)) {
-                        return "CON 1: My Accounts\n2: Send To SB Account\n3: Send To Other Bank\n4: Send To Wallet\n5: Airtime Top-up\n\n#: Next\n0: Exit";
+                        return "CON Transfer cancelled.\nMain Menu\n1. My Account\n2. Own Account Transfer\n3. Exit";
                     } else {
                         return "END Invalid option. Transfer cancelled.";
                     }
                 }
             }
 
-            // 3. Send To Other Bank (placeholder)
+            // 3. Exit
             if ("3".equals(mainChoice)) {
-                return "END Send To Other Bank feature coming soon!";
-            }
-
-            // 4. Send To Wallet (placeholder)
-            if ("4".equals(mainChoice)) {
-                return "END Send To Wallet feature coming soon!";
-            }
-
-            // 5. Airtime Top-up (placeholder)
-            if ("5".equals(mainChoice)) {
-                return "END Airtime Top-up feature coming soon!";
+                return "END Thank you for using Shabelle Bank IBMB.\nGoodbye!";
             }
         }
 

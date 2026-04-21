@@ -1,92 +1,79 @@
 package com.herani.ussd_demo.service;
 
+import com.herani.ussd_demo.dto.LoginRequest;
+import com.herani.ussd_demo.dto.LoginResponse;
+import com.herani.ussd_demo.dto.LoginData;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
-    @Value("${auth.api.url}")
-    private String url;
-    private static final String LOGIN_URL = "https://dummyjson.com/auth/login";
-        RestTemplate restTemplate = new RestTemplate();
-    public boolean authenticateUserOnlyPin(String pin) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("device_uuid", "924224a1ae5b3efc");
-        headers.set("platform", "android");
-        headers.set("installation_date", "2026-03-04T12:38:01.627Z");
-        headers.set("x-source", "app");
-        headers.set("app_version", "1.0");
-
-        Map<String, String> body = Map.of("pin", pin);
-
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-        return response.getStatusCode().is2xxSuccessful();
-    }
-    public boolean authenticateUserFromDummyJson(String pin){
-        String username = getUsernameFromPin(pin);
-        Map<String, String> body = Map.of("username", username, "password", pin);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(LOGIN_URL, request, String.class);
-        return response.getStatusCode().is2xxSuccessful();
-    }
-
-    private String getUsernameFromPin(String pin) {
-        switch (pin) {
-            case "1234": return "kminchelle";   // Known working user in DummyJSON
-            case "0000": return "atuny0";       // Another working user
-            case "1111": return "hbingley1";
-            default:     return "invaliduser";  // Will fail
+    
+    @Value("${auth.api.url:https://api.shabelle.shega.heranitech.com/api/User/login}")
+    private String loginApiUrl;
+    
+    private final RestTemplate restTemplate = new RestTemplate();
+    
+    // Store session tokens (in a real app, use Redis or proper session management)
+    private final Map<String, String> sessionTokens = new ConcurrentHashMap<>();
+    public LoginResponse authenticateUser(String pin, String sessionId) {
+        // Basic validation for USSD PIN (must be exactly 6 digits)
+        if (pin == null || pin.length() != 6 || !pin.matches("\\d{6}")) {
+            LoginResponse errorResponse = new LoginResponse();
+            errorResponse.setSuccess(false);
+            errorResponse.setMessage("Invalid PIN format");
+            errorResponse.setStatusCode(400);
+            return errorResponse;
         }
-    }
 
-    public boolean authenticateUser(String pin) {
-        // Basic validation for USSD PIN (must be exactly 4 digits)
-        if (pin == null || pin.length() != 4 || !pin.matches("\\d{4}")) {
-            return false;
-        }
-            // Use a currently working credential from DummyJSON
-            String username = "emilys";           // Reliable working username
-            String password = "emilyspass";       // Correct password for emilys
-
-            // For demo purposes: allow multiple easy PINs
-            // You can add more mappings if you want
-            switch (pin) {
-                case "1234":
-                    password = "emilyspass";   // Success
-                    break;
-                case "0000":
-                case "1111":
-                case "9999":
-                    return true;               // Force success for quick testing
-                default:
-                    return false;              // Any other PIN fails
-            }
-
-            Map<String, String> body = new HashMap<>();
-            body.put("username", username);
-            body.put("password", password);
-            // body.put("expiresInMins", "30"); // optional
+        try {
+            // Create login request with device info
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.setPin(pin);
+            loginRequest.setDeviceUuid("b0bf69d5-f2ba-4699-b810-00c9ca3a32e7");
+            loginRequest.setDevicePlatform("android");
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            HttpEntity<LoginRequest> request = new HttpEntity<>(loginRequest, headers);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(LOGIN_URL, request, String.class);
+            ResponseEntity<LoginResponse> response = restTemplate.postForEntity(
+                loginApiUrl, request, LoginResponse.class);
 
-            return response.getStatusCode().is2xxSuccessful();
+            LoginResponse loginResponse = response.getBody();
+            
+            // Store token for session if login successful
+            if (loginResponse != null && loginResponse.isSuccess() && 
+                loginResponse.getData() != null && loginResponse.getData().getAccessToken() != null) {
+                sessionTokens.put(sessionId, loginResponse.getData().getAccessToken());
+            }
+
+            return loginResponse;
+        } catch (Exception e) {
+            LoginResponse errorResponse = new LoginResponse();
+            errorResponse.setSuccess(false);
+            errorResponse.setMessage("Login failed: " + e.getMessage());
+            errorResponse.setStatusCode(500);
+            return errorResponse;
+        }
+    }
+
+    public String getAccessToken(String sessionId) {
+        return sessionTokens.get(sessionId);
+    }
+
+    public boolean isAuthenticated(String sessionId) {
+        return sessionTokens.containsKey(sessionId);
+    }
+
+    public void logout(String sessionId) {
+        sessionTokens.remove(sessionId);
     }
 }

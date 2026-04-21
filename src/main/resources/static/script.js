@@ -12,7 +12,7 @@ async function sendUssdRequest(currentInput = "") {
 
     const formData = new FormData();
     formData.append("sessionId", currentSessionId);
-    formData.append("phoneNumber", "251911223344");
+    formData.append("phoneNumber", "251922272511");
     formData.append("text", accumulatedText);
 
     try {

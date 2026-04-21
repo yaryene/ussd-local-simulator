@@ -1,0 +1,57 @@
+working endpoints:
+login
+url: https://api.shabelle.shega.heranitech.com/api/User/login
+body:
+v{
+  "pin": "123456",
+  "deviceUuid": "b0bf69d5-f2ba-4699-b810-00c9ca3a32e7",
+  "devicePlatform": "android"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "user": {
+      "id": "019da514-7a3c-7552-ba1a-b5c77be065f7",
+      "userCode": "0000039",
+      "username": "",
+      "email": null,
+      "phoneNumber": "+251922272511",
+      "bankCustomerNumber": "000000003",
+      "createdAt": "2026-04-19T09:31:15.935217Z",
+      "updatedAt": "2026-04-21T08:37:45.6668464Z",
+      "isCustomerLinked": true,
+      "profile": null,
+      "accounts": null
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCIhWG7nP8g9qk"
+  },
+  "statusCode": 200,
+  "errors": null
+}
+
+then I use the accessToken to send within bank
+internal transfer
+url: https://api.shabelle.shega.heranitech.com/api/Transfer/internal
+body:
+{
+  "fromAccountNo": "000000010",
+  "toAccountNo": "000000009",
+  "amount": 1000,
+  "remark": "test I"
+}
+
+response:
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "referenceId": "CORE-16",
+    "applicationConfigurationId": "019d11e0-6b79-7b74-aad7-c400e2a8474f",
+    "status": "SUCCESS"
+  },
+  "statusCode": 200,
+  "errors": null
+}
